@@ -1,17 +1,9 @@
-# Car Rental System (CUI Version)
-# Features:
-# - OOP (Encapsulation, Inheritance, Polymorphism)
-# - Factory Design Pattern
-# - Robust error handling
-# - Command Line Interface
+# Car Rental System
 
 from abc import ABC, abstractmethod  # Import abstract base class for abstraction
 import mysql.connector  # Import MySQL connector
 
-
-# =========================
 # DATABASE CONNECTION
-# =========================
 def get_db_connection():
     return mysql.connector.connect(  # Establish connection to MySQL
         host="localhost",  # Database host
@@ -20,19 +12,14 @@ def get_db_connection():
         database="car_rental"  # Database name
     )
 
-
-# =========================
 # USER CLASS
-# =========================
 class User:
     def __init__(self, username, role):
         self.username = username  # Store username
         self.role = role  # Store role (admin/customer)
 
 
-# =========================
 # CAR ABSTRACT CLASS
-# =========================
 class Car(ABC):  # Abstract base class
     def __init__(self, car_id, brand, model, base_price_per_day, is_rented=False):
         self._car_id = car_id  # Unique ID
@@ -65,28 +52,21 @@ class Car(ABC):  # Abstract base class
         status = "Rented" if self._is_rented else "Available"  # Determine status
         return f"ID: {self._car_id} | {self._brand} {self._model} | Status: {status}"
 
-
-# =========================
 # CAR TYPES (INHERITANCE)
-# =========================
 class EconomyCar(Car):
     def calculate_price(self, days):
         return self._base_price_per_day * days  # Normal pricing
 
-
 class LuxuryCar(Car):
     def calculate_price(self, days):
         return self._base_price_per_day * days * 1.5  # 50% extra
-
 
 class SUVCar(Car):
     def calculate_price(self, days):
         return self._base_price_per_day * days * 1.2  # 20% extra
 
 
-# =========================
 # FACTORY PATTERN
-# =========================
 class CarFactory:
     @staticmethod
     def create_car(car_type, car_id, brand, model, price, is_rented=False):
@@ -100,9 +80,7 @@ class CarFactory:
             raise ValueError("Invalid car type")
 
 
-# =========================
 # SERVICE LAYER (MYSQL)
-# =========================
 class RentalService:
     def __init__(self):
         self.conn = get_db_connection()  # Connect to database
@@ -180,9 +158,7 @@ class RentalService:
         print("Car returned successfully")
 
 
-# =========================
 # MAIN APPLICATION
-# =========================
 class CarRentalApp:
     def __init__(self):
         self.service = RentalService()
@@ -281,10 +257,7 @@ class CarRentalApp:
             elif self.current_user.role == "customer":
                 self.customer_menu()
 
-
-# =========================
 # RUN APPLICATION
-# =========================
 if __name__ == "__main__":
     app = CarRentalApp()
     app.run()
