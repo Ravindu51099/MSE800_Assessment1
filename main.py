@@ -5,27 +5,30 @@
 # - Robust error handling
 # - Command Line Interface
 
+# Car Rental System (CUI Version with MySQL)
+
 from abc import ABC, abstractmethod  # Import abstract base class for OOP abstraction
 import mysql.connector  # Import MySQL connector library
  
 # DATABASE CONNECTION
+ 
 def get_db_connection():
     return mysql.connector.connect(  # Create connection to MySQL database
         host="localhost",  # Database host
         user="root",  # MySQL username
-        password="yourpassword",  # MySQL password (Temp Password for now)
+        password="",  # MySQL password (CHANGE THIS)
         database="car_rental"  # Database name
     )
-
  
 # USER CLASS
+ 
 class User:
     def __init__(self, username, role):
         self.username = username  # Store username
         self.role = role  # Store user role (admin/customer)
 
-
 # CAR CLASSES
+ 
 class Car(ABC):  # Abstract base class for all cars
     def __init__(self, car_id, brand, model, base_price_per_day, is_rented=False):
         self._car_id = car_id  # Unique ID of car
@@ -58,23 +61,20 @@ class Car(ABC):  # Abstract base class for all cars
         status = "Rented" if self._is_rented else "Available"  # Determine status
         return f"ID: {self._car_id} | {self._brand} {self._model} | Status: {status}"  # Return formatted string
 
-
 class EconomyCar(Car):  # Economy car type
     def calculate_price(self, days):
         return self._base_price_per_day * days  # Simple pricing
-
 
 class LuxuryCar(Car):  # Luxury car type
     def calculate_price(self, days):
         return self._base_price_per_day * days * 1.5  # 50% extra cost
 
-
 class SUVCar(Car):  # SUV car type
     def calculate_price(self, days):
         return self._base_price_per_day * days * 1.2  # 20% extra cost
 
-
 # FACTORY PATTERN
+ 
 class CarFactory:
     @staticmethod
     def create_car(car_type, car_id, brand, model, price, is_rented=False):
@@ -86,8 +86,10 @@ class CarFactory:
             return SUVCar(car_id, brand, model, price, is_rented)
         else:
             raise ValueError("Invalid car type")  # Handle invalid type
-        
+
+
 # SERVICE LAYER (MYSQL)
+ 
 class RentalService:
     def __init__(self):
         self.conn = get_db_connection()  # Open DB connection
@@ -154,3 +156,112 @@ class RentalService:
         self.cursor.execute("UPDATE cars SET is_rented=FALSE WHERE id=%s", (car_id,))  # Update DB
         self.conn.commit()
         print("Car returned successfully")
+
+ 
+# MAIN APPLICATION
+ 
+class CarRentalApp:
+    def __init__(self):
+        self.service = RentalService()  # Create service object
+        self.current_user = None  # Track logged-in user
+
+    def login(self):
+        print("\n--- LOGIN ---")
+        username = input("Username: ")  # Get username
+        password = input("Password: ")  # Get password
+
+        conn = get_db_connection()  # Connect to DB
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT role FROM users WHERE username=%s AND password=%s", (username, password))  # Verify user
+        result = cursor.fetchone()
+
+        if result:
+            self.current_user = User(username, result[0])  # Create user object
+            print(f"Login successful! Logged in as {result[0]}")
+        else:
+            print("Invalid credentials")
+
+    def admin_menu(self):
+        print("\n--- ADMIN MENU ---")
+        print("1. View Cars")
+        print("2. Add Car")
+        print("3. Remove Car")
+        print("4. Logout")
+
+        choice = input("Enter choice: ")  # Get admin choice
+
+        try:
+            if choice == "1":
+                self.service.list_cars()
+
+            elif choice == "2":
+                car_id = int(input("ID: "))
+                brand = input("Brand: ")
+                model = input("Model: ")
+                price = float(input("Price: "))
+                car_type = input("Type (economy/luxury/suv): ")
+
+                car = CarFactory.create_car(car_type, car_id, brand, model, price)  # Create car
+                self.service.add_car(car)  # Add to DB
+
+            elif choice == "3":
+                car_id = int(input("Enter ID: "))
+                self.service.remove_car(car_id)
+
+            elif choice == "4":
+                self.current_user = None  # Logout
+
+            else:
+                print("Invalid choice")
+
+        except Exception as e:
+            print("Error:", e)
+
+    def customer_menu(self):
+        print("\n--- CUSTOMER MENU ---")
+        print("1. View Cars")
+        print("2. Rent Car")
+        print("3. Return Car")
+        print("4. Logout")
+
+        choice = input("Enter choice:")
+
+        try:
+            if choice == "1":
+                self.service.list_cars()
+
+            elif choice == "2":
+                car_id = int(input("Car ID: "))
+                days = int(input("Days: "))
+                self.service.rent_car(car_id, days)
+
+            elif choice == "3":
+                car_id = int(input("Car ID: "))
+                self.service.return_car(car_id)
+
+            elif choice == "4":
+                self.current_user = None
+
+            else:
+                print("Invalid choice")
+
+        except Exception as e:
+            print("Error:", e)
+
+    def run(self):
+        while True:  # Infinite loop
+            if not self.current_user:
+                self.login()  # Ask login
+            elif self.current_user.role == "admin":
+                self.admin_menu()  # Admin menu
+            elif self.current_user.role == "customer":
+                self.customer_menu()  # Customer menu
+
+
+ 
+# RUN APP
+ 
+if __name__ == "__main__":  # Entry point
+    app = CarRentalApp()  # Create app
+    app.run()  # Run system
