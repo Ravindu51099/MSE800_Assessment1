@@ -5,135 +5,149 @@
 # - Robust error handling
 # - Command Line Interface
 
-# Car Rental System (CUI Version with MySQL)
+from abc import ABC, abstractmethod  # Import abstract base class for abstraction
+import mysql.connector  # Import MySQL connector
 
-from abc import ABC, abstractmethod  # Import abstract base class for OOP abstraction
-import mysql.connector  # Import MySQL connector library
- 
+
+# =========================
 # DATABASE CONNECTION
- 
+# =========================
 def get_db_connection():
-    return mysql.connector.connect(  # Create connection to MySQL database
+    return mysql.connector.connect(  # Establish connection to MySQL
         host="localhost",  # Database host
         user="root",  # MySQL username
-        password="",  # MySQL password (CHANGE THIS)
+        password="",  # MySQL password (SET YOUR PASSWORD HERE)
         database="car_rental"  # Database name
     )
- 
+
+
+# =========================
 # USER CLASS
- 
+# =========================
 class User:
     def __init__(self, username, role):
         self.username = username  # Store username
-        self.role = role  # Store user role (admin/customer)
+        self.role = role  # Store role (admin/customer)
 
-# CAR CLASSES
- 
-class Car(ABC):  # Abstract base class for all cars
+
+# =========================
+# CAR ABSTRACT CLASS
+# =========================
+class Car(ABC):  # Abstract base class
     def __init__(self, car_id, brand, model, base_price_per_day, is_rented=False):
-        self._car_id = car_id  # Unique ID of car
-        self._brand = brand  # Car brand
-        self._model = model  # Car model
-        self._base_price_per_day = base_price_per_day  # Price per day
+        self._car_id = car_id  # Unique ID
+        self._brand = brand  # Brand name
+        self._model = model  # Model name
+        self._base_price_per_day = base_price_per_day  # Daily price
         self._is_rented = is_rented  # Rental status
 
     def get_id(self):
-        return self._car_id  # Return car ID
+        return self._car_id  # Return ID
 
     def is_rented(self):
         return self._is_rented  # Return rental status
 
     def rent(self):
-        if self._is_rented:  # Check if already rented
-            raise Exception("Car already rented!")  # Prevent double rent
-        self._is_rented = True  # Mark as rented
+        if self._is_rented:  # If already rented
+            raise Exception("Car already rented!")  # Prevent duplicate rent
+        self._is_rented = True  # Mark rented
 
     def return_car(self):
-        if not self._is_rented:  # Check if not rented
+        if not self._is_rented:  # If not rented
             raise Exception("Car is not rented!")  # Prevent invalid return
-        self._is_rented = False  # Mark as available
+        self._is_rented = False  # Mark available
 
     @abstractmethod
-    def calculate_price(self, days):  # Abstract method for price calculation
+    def calculate_price(self, days):  # Abstract method
         pass
 
     def display(self):
         status = "Rented" if self._is_rented else "Available"  # Determine status
-        return f"ID: {self._car_id} | {self._brand} {self._model} | Status: {status}"  # Return formatted string
+        return f"ID: {self._car_id} | {self._brand} {self._model} | Status: {status}"
 
-class EconomyCar(Car):  # Economy car type
+
+# =========================
+# CAR TYPES (INHERITANCE)
+# =========================
+class EconomyCar(Car):
     def calculate_price(self, days):
-        return self._base_price_per_day * days  # Simple pricing
+        return self._base_price_per_day * days  # Normal pricing
 
-class LuxuryCar(Car):  # Luxury car type
+
+class LuxuryCar(Car):
     def calculate_price(self, days):
-        return self._base_price_per_day * days * 1.5  # 50% extra cost
+        return self._base_price_per_day * days * 1.5  # 50% extra
 
-class SUVCar(Car):  # SUV car type
+
+class SUVCar(Car):
     def calculate_price(self, days):
-        return self._base_price_per_day * days * 1.2  # 20% extra cost
+        return self._base_price_per_day * days * 1.2  # 20% extra
 
+
+# =========================
 # FACTORY PATTERN
- 
+# =========================
 class CarFactory:
     @staticmethod
     def create_car(car_type, car_id, brand, model, price, is_rented=False):
-        if car_type == "economy":  # Create economy car
+        if car_type == "economy":
             return EconomyCar(car_id, brand, model, price, is_rented)
-        elif car_type == "luxury":  # Create luxury car
+        elif car_type == "luxury":
             return LuxuryCar(car_id, brand, model, price, is_rented)
-        elif car_type == "suv":  # Create SUV car
+        elif car_type == "suv":
             return SUVCar(car_id, brand, model, price, is_rented)
         else:
-            raise ValueError("Invalid car type")  # Handle invalid type
+            raise ValueError("Invalid car type")
 
 
+# =========================
 # SERVICE LAYER (MYSQL)
- 
+# =========================
 class RentalService:
     def __init__(self):
-        self.conn = get_db_connection()  # Open DB connection
-        self.cursor = self.conn.cursor()  # Create cursor for queries
+        self.conn = get_db_connection()  # Connect to database
+        self.cursor = self.conn.cursor()  # Create cursor
 
     def add_car(self, car):
-        query = "INSERT INTO cars (id, brand, model, price, is_rented) VALUES (%s,%s,%s,%s,%s)"  # SQL insert
-        self.cursor.execute(query, (car._car_id, car._brand, car._model, car._base_price_per_day, car._is_rented))  # Execute query
-        self.conn.commit()  # Save changes
+        query = "INSERT INTO cars (id, brand, model, price, is_rented) VALUES (%s,%s,%s,%s,%s)"
+        self.cursor.execute(query, (car._car_id, car._brand, car._model, car._base_price_per_day, car._is_rented))
+        self.conn.commit()
         print("Car added successfully")
 
     def remove_car(self, car_id):
-        self.cursor.execute("DELETE FROM cars WHERE id=%s", (car_id,))  # Delete query
-        self.conn.commit()  # Save changes
+        self.cursor.execute("DELETE FROM cars WHERE id=%s", (car_id,))
+        self.conn.commit()
         print("Car removed successfully")
 
     def list_cars(self):
-        self.cursor.execute("SELECT * FROM cars")  # Fetch all cars
-        cars = self.cursor.fetchall()  # Get results
+        self.cursor.execute("SELECT * FROM cars")
+        cars = self.cursor.fetchall()
 
-        if not cars:  # If no cars
+        if not cars:
             print("No cars available")
             return
 
-        for (id, brand, model, price, is_rented) in cars:  # Loop through results
-            status = "Rented" if is_rented else "Available"  # Determine status
-            print(f"ID: {id} | {brand} {model} | Status: {status}")  # Display
+        for (id, brand, model, price, is_rented) in cars:
+            status = "Rented" if is_rented else "Available"
+            print(f"ID: {id} | {brand} {model} | Status: {status}")
 
     def find_car(self, car_id):
-        self.cursor.execute("SELECT * FROM cars WHERE id=%s", (car_id,))  # Search by ID
-        return self.cursor.fetchone()  # Return result
+        self.cursor.execute("SELECT * FROM cars WHERE id=%s", (car_id,))
+        return self.cursor.fetchone()
 
     def rent_car(self, car_id, days):
-        if days <= 0:  # Validate days
+        if days <= 0:
             raise Exception("Invalid number of days")
 
-        car = self.find_car(car_id)  # Get car
+        car = self.find_car(car_id)
+
         if not car:
             raise Exception("Car not found")
 
-        if car[4]:  # Check if rented
+        if car[4]:  # is_rented
             raise Exception("Car already rented")
 
-        base_cost = car[3] * days  # Calculate base cost
+        base_cost = car[3] * days
 
         # Discount logic
         discount = 0
@@ -142,10 +156,10 @@ class RentalService:
         elif days >= 7:
             discount = 0.05
 
-        discount_amount = base_cost * discount  # Calculate discount
-        final_cost = base_cost - discount_amount  # Final price
+        discount_amount = base_cost * discount
+        final_cost = base_cost - discount_amount
 
-        self.cursor.execute("UPDATE cars SET is_rented=TRUE WHERE id=%s", (car_id,))  # Update DB
+        self.cursor.execute("UPDATE cars SET is_rented=TRUE WHERE id=%s", (car_id,))
         self.conn.commit()
 
         print(f"Base Cost: ${base_cost}")
@@ -153,31 +167,40 @@ class RentalService:
         print(f"Final Cost: ${final_cost}")
 
     def return_car(self, car_id):
-        self.cursor.execute("UPDATE cars SET is_rented=FALSE WHERE id=%s", (car_id,))  # Update DB
+        car = self.find_car(car_id)  # Get car from DB
+
+        if not car:
+            raise Exception("Car not found")
+
+        if not car[4]:  # FIX: Check if already available
+            raise Exception("Car is already available, cannot return")
+
+        self.cursor.execute("UPDATE cars SET is_rented=FALSE WHERE id=%s", (car_id,))
         self.conn.commit()
         print("Car returned successfully")
 
- 
+
+# =========================
 # MAIN APPLICATION
- 
+# =========================
 class CarRentalApp:
     def __init__(self):
-        self.service = RentalService()  # Create service object
-        self.current_user = None  # Track logged-in user
+        self.service = RentalService()
+        self.current_user = None
 
     def login(self):
         print("\n--- LOGIN ---")
-        username = input("Username: ")  # Get username
-        password = input("Password: ")  # Get password
+        username = input("Username: ")
+        password = input("Password: ")
 
-        conn = get_db_connection()  # Connect to DB
+        conn = get_db_connection()
         cursor = conn.cursor()
 
-        cursor.execute("SELECT role FROM users WHERE username=%s AND password=%s", (username, password))  # Verify user
+        cursor.execute("SELECT role FROM users WHERE username=%s AND password=%s", (username, password))
         result = cursor.fetchone()
 
         if result:
-            self.current_user = User(username, result[0])  # Create user object
+            self.current_user = User(username, result[0])
             print(f"Login successful! Logged in as {result[0]}")
         else:
             print("Invalid credentials")
@@ -189,7 +212,7 @@ class CarRentalApp:
         print("3. Remove Car")
         print("4. Logout")
 
-        choice = input("Enter choice: ")  # Get admin choice
+        choice = input("Enter choice: ")
 
         try:
             if choice == "1":
@@ -202,15 +225,15 @@ class CarRentalApp:
                 price = float(input("Price: "))
                 car_type = input("Type (economy/luxury/suv): ")
 
-                car = CarFactory.create_car(car_type, car_id, brand, model, price)  # Create car
-                self.service.add_car(car)  # Add to DB
+                car = CarFactory.create_car(car_type, car_id, brand, model, price)
+                self.service.add_car(car)
 
             elif choice == "3":
                 car_id = int(input("Enter ID: "))
                 self.service.remove_car(car_id)
 
             elif choice == "4":
-                self.current_user = None  # Logout
+                self.current_user = None
 
             else:
                 print("Invalid choice")
@@ -250,18 +273,18 @@ class CarRentalApp:
             print("Error:", e)
 
     def run(self):
-        while True:  # Infinite loop
+        while True:
             if not self.current_user:
-                self.login()  # Ask login
+                self.login()
             elif self.current_user.role == "admin":
-                self.admin_menu()  # Admin menu
+                self.admin_menu()
             elif self.current_user.role == "customer":
-                self.customer_menu()  # Customer menu
+                self.customer_menu()
 
 
- 
-# RUN APP
- 
-if __name__ == "__main__":  # Entry point
-    app = CarRentalApp()  # Create app
-    app.run()  # Run system
+# =========================
+# RUN APPLICATION
+# =========================
+if __name__ == "__main__":
+    app = CarRentalApp()
+    app.run()
