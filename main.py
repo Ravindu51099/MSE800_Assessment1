@@ -289,20 +289,24 @@ class CarRentalApp:
     # MAIN LOOP
     def run(self):
         while True:
-            print("\n1.Register 2.Login")
-            choice = input()
+            # If no user logged in → show login/register
+            if not self.user:
+                print("\n1.Register 2.Login")
+                choice = input()
 
-            if choice == "1":
-                self.register()
+                if choice == "1":
+                    self.register()
 
-            elif choice == "2":
-                self.login()
+                elif choice == "2":
+                    self.login()
 
-                if self.user:
-                    if self.user.role == "admin":
-                        self.admin_menu()
-                    else:
-                        self.customer_menu()
+            # If Admin logged in → stay in admin menu
+            elif self.user.role == "admin":
+                self.admin_menu()
+
+            # If Customer logged in → stay in customer menu
+            elif self.user.role == "customer":
+                self.customer_menu()
 
 
 # =========================
