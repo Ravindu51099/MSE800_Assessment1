@@ -115,16 +115,63 @@ class RentalService:
         self.conn.commit()
 
     # LIST ALL CARS
-    def list_cars(self):
-        self.cursor.execute("SELECT * FROM cars")
-        cars = self.cursor.fetchall()
+    def list_cars(self):  
+    # Define a method to list all cars from the database
 
-        if not cars:
-            print("No cars available")
-            return
+        self.cursor.execute("SELECT * FROM cars")  
+        # Run SQL query to retrieve all records from the 'cars' table
 
-        for car in cars:
-            print(car)
+        cars = self.cursor.fetchall()  
+        # Fetch all results returned by the query and store them in 'cars'
+
+        if not cars:  
+            # Check if the list is empty (no cars found)
+            print("No cars available")  
+            # Inform the user that there are no cars in the database
+            return  
+            # Exit the function early since there is nothing to display
+
+        print("\n===== CAR LIST =====")  
+        # Print a header for the car listing
+
+        for (id, brand, model, year, mileage, price, min_days, max_days, is_rented) in cars:  
+            # Loop through each car record and unpack its values into variables
+
+            status = "Rented" if is_rented else "Available"  
+            # Set status based on whether the car is rented or not
+
+            print("\n----------------------------")  
+            # Print a separator line for better readability
+
+            print(f"Car ID        : {id}")  
+            # Display the car's unique ID
+
+            print(f"Brand         : {brand}")  
+            # Display the car brand
+
+            print(f"Model         : {model}")  
+            # Display the car model
+
+            print(f"Year          : {year}")  
+            # Display the manufacturing year of the car
+
+            print(f"Mileage       : {mileage} km")  
+            # Display the car's mileage in kilometers
+
+            print(f"Price/Day     : ${price}")  
+            # Display rental price per day
+
+            print(f"Min Rent Days : {min_days}")  
+            # Display minimum allowed rental days
+
+            print(f"Max Rent Days : {max_days}")  
+            # Display maximum allowed rental days
+
+            print(f"Status        : {status}")  
+            # Display whether the car is available or rented
+
+            print("----------------------------")  
+            # Print closing separator line
 
     # GET CAR BY ID
     def get_car(self, car_id):
