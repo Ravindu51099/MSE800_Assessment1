@@ -1,269 +1,279 @@
 # Car Rental System (CUI Version - FULL LINE-BY-LINE COMMENTED)
 
-from abc import ABC, abstractmethod  # Import ABC for creating abstract classes and abstract methods
-import mysql.connector  # Import MySQL connector to interact with MySQL database
+from abc import ABC, abstractmethod  # Import ABC for abstract classes and abstract methods
+import mysql.connector  # Import MySQL connector for database connection
+
+# COLORS (ANSI ESCAPE CODES)
+GREEN = "\033[92m"  # Green text for success messages
+RED = "\033[91m"  # Red text for error messages
+YELLOW = "\033[93m"  # Yellow text for warnings
+CYAN = "\033[96m"  # Cyan text for menus
+RESET = "\033[0m"  # Reset color back to default
 
 
 # DATABASE CONNECTION FUNCTION
-def get_db_connection():  # Function to create a database connection
-    return mysql.connector.connect(  # Return a connection object
-        host="localhost",  # Database is hosted locally
+def get_db_connection():  # Function to create and return database connection
+    return mysql.connector.connect(  # Return MySQL connection object
+        host="localhost",  # Database host (local machine)
         user="root",  # MySQL username
         password="",  # MySQL password (empty here)
-        database="car_rental"  # Name of the database to use
+        database="car_rental"  # Database name
     )  # End connection setup
 
 
 # USER CLASS
-class User:  # Define a User class
-    def __init__(self, username, role):  # Constructor method
-        self.username = username  # Store username in the object
+class User:  # Class representing a system user
+    def __init__(self, username, role):  # Constructor for User class
+        self.username = username  # Store username
         self.role = role  # Store user role (admin/customer)
 
 
 # CAR ABSTRACT CLASS
-class Car(ABC):  # Abstract base class for all car types
+class Car(ABC):  # Abstract base class for cars
     def __init__(self, car_id, brand, model, year, mileage, price, min_days, max_days, is_rented=False):
-        self._car_id = car_id  # Store car ID (protected variable)
+        self._car_id = car_id  # Store car ID (protected)
         self._brand = brand  # Store brand name
         self._model = model  # Store model name
         self._year = year  # Store manufacturing year
         self._mileage = mileage  # Store mileage
         self._price = price  # Store price per day
-        self._min_days = min_days  # Store minimum rental days allowed
-        self._max_days = max_days  # Store maximum rental days allowed
-        self._is_rented = is_rented  # Store rental status (default False)
+        self._min_days = min_days  # Minimum rental days allowed
+        self._max_days = max_days  # Maximum rental days allowed
+        self._is_rented = is_rented  # Rental status flag
 
-    @abstractmethod  # Force subclasses to implement this method
-    def calculate_price(self, days):  # Method to calculate rental cost
-        pass  # No implementation here (must be overridden)
+    @abstractmethod  # Force child classes to implement this method
+    def calculate_price(self, days):  # Method to calculate price
+        pass  # No implementation here
 
 
 # CAR TYPES (INHERITANCE)
-class EconomyCar(Car):  # EconomyCar inherits from Car
+class EconomyCar(Car):  # Economy car class
     def calculate_price(self, days):  # Override abstract method
-        return self._price * days  # Simple multiplication pricing
+        return self._price * days  # Basic pricing logic
 
 
-class LuxuryCar(Car):  # LuxuryCar inherits from Car
+class LuxuryCar(Car):  # Luxury car class
     def calculate_price(self, days):  # Override method
-        return self._price * days * 1.5  # Add 50% surcharge
+        return self._price * days * 1.5  # Luxury markup
 
 
-class SUVCar(Car):  # SUVCar inherits from Car
+class SUVCar(Car):  # SUV car class
     def calculate_price(self, days):  # Override method
-        return self._price * days * 1.2  # Add 20% surcharge
+        return self._price * days * 1.2  # SUV markup
 
 
 # FACTORY PATTERN
-class CarFactory:  # Factory class to create car objects
-    @staticmethod  # Static method (no instance needed)
-    def create_car(car_type, *args):  # Method to create car based on type
+class CarFactory:  # Factory class for creating car objects
+    @staticmethod  # Static method (no object required)
+    def create_car(car_type, *args):  # Create car based on type
         car_type = car_type.lower().strip()  # Normalize input
 
-        if car_type == "economy":  # If type is economy
+        if car_type == "economy":  # If economy selected
             return EconomyCar(*args)  # Return EconomyCar object
-        elif car_type == "luxury":  # If type is luxury
+        elif car_type == "luxury":  # If luxury selected
             return LuxuryCar(*args)  # Return LuxuryCar object
-        elif car_type == "suv":  # If type is SUV
+        elif car_type == "suv":  # If SUV selected
             return SUVCar(*args)  # Return SUVCar object
-        else:  # If invalid type
-            raise ValueError("Invalid car type. Use economy/luxury/suv")  # Raise error
+        else:  # Invalid input
+            raise ValueError("Invalid car type")  # Raise error
 
 
 # SERVICE LAYER (DATABASE LOGIC)
-class RentalService:  # Handles all database operations
+class RentalService:  # Handles all DB operations
     def __init__(self):  # Constructor
-        self.conn = get_db_connection()  # Establish DB connection
-        self.cursor = self.conn.cursor()  # Create cursor for executing queries
+        self.conn = get_db_connection()  # Create DB connection
+        self.cursor = self.conn.cursor()  # Create cursor for queries
 
-    def register_user(self, username, password, role):  # Register a new user
-        self.cursor.execute("INSERT INTO users VALUES (%s,%s,%s)", (username, password, role))  # Insert user record
+    def register_user(self, username, password, role):  # Register new user
+        self.cursor.execute(  # Execute SQL insert
+            "INSERT INTO users VALUES (%s,%s,%s)", (username, password, role)
+        )  # End query
         self.conn.commit()  # Save changes
+        print(GREEN + "User registered successfully" + RESET)  # Success message
 
-    def add_car(self, car):  # Add a new car to DB
-        self.cursor.execute(
-            "INSERT INTO cars VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",  # SQL insert statement
+    def add_car(self, car):  # Add car to database
+        self.cursor.execute(  # Insert car into DB
+            "INSERT INTO cars VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
             (car._car_id, car._brand, car._model, car._year, car._mileage,
-             car._price, car._min_days, car._max_days, car._is_rented)  # Pass car data
+             car._price, car._min_days, car._max_days, car._is_rented)
         )
         self.conn.commit()  # Save changes
-        print("Car added successfully")  # Confirmation message
+        print(GREEN + "Car added successfully" + RESET)  # Success message
 
     def update_car(self, car_id, price):  # Update car price
-        self.cursor.execute("UPDATE cars SET price=%s WHERE id=%s", (price, car_id))  # SQL update
+        self.cursor.execute(  # SQL update query
+            "UPDATE cars SET price=%s WHERE id=%s", (price, car_id)
+        )
         self.conn.commit()  # Save changes
+        print(GREEN + "Car updated successfully" + RESET)  # Success message
 
-    def delete_car(self, car_id):  # Delete a car
-        self.cursor.execute("DELETE FROM cars WHERE id=%s", (car_id,))  # SQL delete
+    def delete_car(self, car_id):  # Delete car
+        self.cursor.execute(  # SQL delete query
+            "DELETE FROM cars WHERE id=%s", (car_id,)
+        )
         self.conn.commit()  # Save changes
+        print(YELLOW + "Car deleted" + RESET)  # Warning message
 
-    def list_cars(self):  # Display all cars
+    def list_cars(self):  # Show all cars
         self.cursor.execute("SELECT * FROM cars")  # Fetch all cars
-        cars = self.cursor.fetchall()  # Store results
+        cars = self.cursor.fetchall()  # Get results
 
-        if not cars:  # If no cars exist
-            print("No cars available")  # Inform user
+        if not cars:  # If no cars found
+            print(YELLOW + "No cars available" + RESET)  # Warning message
             return  # Exit function
 
-        print("\n===== CAR LIST =====")  # Header
+        print(CYAN + "\n===== CAR LIST =====" + RESET)  # Menu header
 
-        for (id, brand, model, year, mileage, price, min_days, max_days, is_rented) in cars:  # Loop through cars
-            status = "Rented" if is_rented else "Available"  # Determine availability
+        for (id, brand, model, year, mileage, price, min_days, max_days, is_rented) in cars:
+            status = "Rented" if is_rented else "Available"  # Status check
 
             print("\n----------------------------")  # Separator
             print(f"Car ID        : {id}")  # Display ID
             print(f"Brand         : {brand}")  # Display brand
             print(f"Model         : {model}")  # Display model
             print(f"Year          : {year}")  # Display year
-            print(f"Mileage       : {mileage} km")  # Display mileage
-            print(f"Price/Day     : ${price}")  # Display price
-            print(f"Min Rent Days : {min_days}")  # Display minimum days
-            print(f"Max Rent Days : {max_days}")  # Display maximum days
+            print(f"Mileage       : {mileage}")  # Display mileage
+            print(f"Price/Day     : {price}")  # Display price
+            print(f"Min Days      : {min_days}")  # Display min days
+            print(f"Max Days      : {max_days}")  # Display max days
             print(f"Status        : {status}")  # Display status
             print("----------------------------")  # End separator
 
-    def get_car(self, car_id):  # Get a specific car
-        self.cursor.execute("SELECT * FROM cars WHERE id=%s", (car_id,))  # Query by ID
-        return self.cursor.fetchone()  # Return one result
+    def get_car(self, car_id):  # Get single car
+        self.cursor.execute("SELECT * FROM cars WHERE id=%s", (car_id,))  # Query car
+        return self.cursor.fetchone()  # Return result
 
-    # CREATE BOOKING 
-    def create_booking(self, username, car_id, days):  # Create booking request
+    def create_booking(self, username, car_id, days):  # Create booking
         car = self.get_car(car_id)  # Fetch car
 
-        if not car:  # If car doesn't exist
+        if not car:  # If car not found
             raise Exception("Car not found")  # Error
 
         if car[8]:  # If already rented
-            raise Exception("Car already rented")  # Prevent booking
+            raise Exception("Car already rented")  # Error
 
-        # Prevent duplicate pending booking by same user
-        self.cursor.execute(
+        self.cursor.execute(  # Check duplicate booking
             "SELECT * FROM bookings WHERE username=%s AND car_id=%s AND status='pending'",
             (username, car_id)
         )
         if self.cursor.fetchone():  # If exists
-            raise Exception("You already have a pending booking for this car")
+            raise Exception("Duplicate pending booking")  # Error
 
-        # Prevent booking if already approved
-        self.cursor.execute(
+        self.cursor.execute(  # Check approved booking
             "SELECT * FROM bookings WHERE car_id=%s AND status='approved'",
             (car_id,)
         )
         if self.cursor.fetchone():  # If exists
-            raise Exception("Car is already booked")
+            raise Exception("Car already booked")  # Error
 
-        if days < car[6] or days > car[7]:  # Validate rental days
-            raise Exception("Invalid rental duration")
+        if days < car[6] or days > car[7]:  # Validate days
+            raise Exception("Invalid rental duration")  # Error
 
-        self.cursor.execute(
-            "INSERT INTO bookings (username, car_id, days, status) VALUES (%s,%s,%s,%s)",
+        self.cursor.execute(  # Insert booking
+            "INSERT INTO bookings VALUES (NULL,%s,%s,%s,%s)",
             (username, car_id, days, "pending")
         )
         self.conn.commit()  # Save
-        print("Booking request submitted")  # Success
+        print(GREEN + "Booking submitted" + RESET)  # Success
 
-    def view_bookings(self):  # View all bookings
-        self.cursor.execute("SELECT * FROM bookings")  # Fetch all bookings
-        for booking in self.cursor.fetchall():  # Loop through results
-            print(booking)  # Display each booking
+    def view_bookings(self):  # View bookings
+        self.cursor.execute("SELECT * FROM bookings")  # Fetch bookings
+        for b in self.cursor.fetchall():  # Loop bookings
+            print(b)  # Print each booking
 
-    # APPROVE BOOKING
-    def approve_booking(self, booking_id):  # Approve a booking
-        self.cursor.execute(
-            "SELECT car_id FROM bookings WHERE booking_id=%s",
+    def approve_booking(self, booking_id):  # Approve booking
+        self.cursor.execute(  # Get car ID
+            "SELECT car_id FROM bookings WHERE id=%s",
             (booking_id,)
         )
-        result = self.cursor.fetchone()  # Get result
+        result = self.cursor.fetchone()  # Fetch result
 
-        if not result:  # If booking doesn't exist
-            raise Exception("Booking not found")
+        if not result:  # If not found
+            raise Exception("Booking not found")  # Error
 
         car_id = result[0]  # Extract car ID
 
-        # Prevent multiple approvals for same car
-        self.cursor.execute(
+        self.cursor.execute(  # Check existing approval
             "SELECT * FROM bookings WHERE car_id=%s AND status='approved'",
             (car_id,)
         )
         if self.cursor.fetchone():  # If exists
-            raise Exception("Car already has an approved booking")
+            raise Exception("Already approved booking exists")  # Error
 
-        self.cursor.execute(
-            "UPDATE bookings SET status='approved' WHERE booking_id=%s",
+        self.cursor.execute(  # Approve booking
+            "UPDATE bookings SET status='approved' WHERE id=%s",
             (booking_id,)
         )
 
-        self.cursor.execute(
+        self.cursor.execute(  # Mark car rented
             "UPDATE cars SET is_rented=TRUE WHERE id=%s",
             (car_id,)
         )
 
         self.conn.commit()  # Save changes
-        print("Booking approved successfully")  # Confirmation
+        print(GREEN + "Booking approved" + RESET)  # Success
 
     def reject_booking(self, booking_id):  # Reject booking
-        self.cursor.execute("UPDATE bookings SET status='rejected' WHERE booking_id=%s", (booking_id,))
-        self.conn.commit()  # Save changes
-
-    def return_car(self, car_id):  # Return a car
-        car = self.get_car(car_id)  # Get car
-
-        if not car:  # If not found
-            raise Exception("Car not found")
-
-        if not car[8]:  # If already available
-            raise Exception("Car already available, cannot return")
-
-        self.cursor.execute("UPDATE cars SET is_rented=FALSE WHERE id=%s", (car_id,))
+        self.cursor.execute(  # Update status
+            "UPDATE bookings SET status='rejected' WHERE id=%s",
+            (booking_id,)
+        )
         self.conn.commit()  # Save
+        print(YELLOW + "Booking rejected" + RESET)  # Warning
+
+    def return_car(self, car_id):  # Return car
+        self.cursor.execute(  # Update car status
+            "UPDATE cars SET is_rented=FALSE WHERE id=%s",
+            (car_id,)
+        )
+        self.conn.commit()  # Save
+        print(GREEN + "Car returned" + RESET)  # Success
 
 
 # MAIN APPLICATION
-class CarRentalApp:  # Main application class
+class CarRentalApp:  # Main app class
     def __init__(self):  # Constructor
-        self.service = RentalService()  # Create service instance
-        self.user = None  # No user logged in
+        self.service = RentalService()  # Create service
+        self.user = None  # No logged user
 
     def register(self):  # Register user
-        username = input("Username: ")  # Get username
-        password = input("Password: ")  # Get password
-        role = input("Role (admin/customer): ").lower()  # Get role
+        username = input("Username: ")  # Input username
+        password = input("Password: ")  # Input password
+        role = input("Role: ")  # Input role
         self.service.register_user(username, password, role)  # Save user
 
-    def login(self):  # Login function
+    def login(self):  # Login system
         username = input("Username: ")  # Input username
         password = input("Password: ")  # Input password
 
-        conn = get_db_connection()  # Connect to DB
-        cursor = conn.cursor()  # Create cursor
+        conn = get_db_connection()  # Connect DB
+        cursor = conn.cursor()  # Cursor
 
-        cursor.execute("SELECT role FROM users WHERE username=%s AND password=%s", (username, password))
+        cursor.execute(  # Check login
+            "SELECT role FROM users WHERE username=%s AND password=%s",
+            (username, password)
+        )
         result = cursor.fetchone()  # Get result
 
-        if result:  # If valid login
+        if result:  # If valid
             self.user = User(username, result[0])  # Create session
-            print(f"Logged in as {result[0]}")  # Show role
+            print(GREEN + "Login successful" + RESET)  # Success
         else:
-            print("Invalid login")  # Error message
+            print(RED + "Invalid login" + RESET)  # Error
 
-    def admin_menu(self):  # Admin menu loop
+    def admin_menu(self):  # Admin menu
         while self.user and self.user.role == "admin":
-            print("\n--- ADMIN MENU ---")
-            print("1.View Cars 2.Add 3.Update 4.Delete 5.Bookings 6.Approve 7.Reject 8.Logout")
+            print(CYAN + "\n--- ADMIN MENU ---" + RESET)  # Menu header
+            print("1.View 2.Add 3.Update 4.Delete 5.Bookings 6.Approve 7.Reject 8.Logout")
 
-            choice = input()
+            choice = input()  # User input
 
             try:
                 if choice == "1":
                     self.service.list_cars()
 
                 elif choice == "2":
-                    while True:
-                        car_type = input("Type (economy/luxury/suv): ").lower().strip()
-                        if car_type in ["economy", "luxury", "suv"]:
-                            break
-                        print("Invalid type. Try again.")
+                    car_type = input("Type: ")  # Input type
 
                     car = CarFactory.create_car(
                         car_type,
@@ -273,14 +283,14 @@ class CarRentalApp:  # Main application class
                         int(input("Year: ")),
                         int(input("Mileage: ")),
                         float(input("Price: ")),
-                        int(input("Min days: ")),
-                        int(input("Max days: "))
+                        int(input("Min: ")),
+                        int(input("Max: "))
                     )
 
                     self.service.add_car(car)
 
                 elif choice == "3":
-                    self.service.update_car(int(input("ID: ")), float(input("New Price: ")))
+                    self.service.update_car(int(input("ID: ")), float(input("Price: ")))
 
                 elif choice == "4":
                     self.service.delete_car(int(input("ID: ")))
@@ -296,15 +306,15 @@ class CarRentalApp:  # Main application class
 
                 elif choice == "8":
                     self.user = None
-                    print("Logged out successfully")
+                    print(GREEN + "Logged out" + RESET)
 
             except Exception as e:
-                print("Error:", e)
+                print(RED + str(e) + RESET)
 
-    def customer_menu(self):  # Customer menu loop
+    def customer_menu(self):  # Customer menu
         while self.user and self.user.role == "customer":
-            print("\n--- CUSTOMER MENU ---")
-            print("1.View Cars 2.Book Car 3.Logout")
+            print(CYAN + "\n--- CUSTOMER MENU ---" + RESET)  # Menu header
+            print("1.View Cars 2.Book 3.Logout")
 
             choice = input()
 
@@ -321,15 +331,15 @@ class CarRentalApp:  # Main application class
 
                 elif choice == "3":
                     self.user = None
-                    print("Logged out successfully")
+                    print(GREEN + "Logged out" + RESET)
 
             except Exception as e:
-                print("Error:", e)
+                print(RED + str(e) + RESET)
 
     def run(self):  # Main loop
         while True:
             if not self.user:
-                print("\n1.Register 2.Login")
+                print(CYAN + "\n1.Register 2.Login" + RESET)  # Menu
                 choice = input()
 
                 if choice == "1":
@@ -344,6 +354,6 @@ class CarRentalApp:  # Main application class
                 self.customer_menu()
 
 
-if __name__ == "__main__":  # Entry point
-    app = CarRentalApp()  # Create app instance
-    app.run()  # Start application
+if __name__ == "__main__":  # Start program
+    app = CarRentalApp()  # Create app
+    app.run()  # Run app
