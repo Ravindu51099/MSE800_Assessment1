@@ -159,12 +159,14 @@ class RentalService:  # Handles all DB operations
         if self.cursor.fetchone():  # If exists
             raise Exception("Duplicate pending booking")  # Error
 
-        self.cursor.execute(  # Check approved booking
-            "SELECT * FROM bookings WHERE car_id=%s AND status='approved'",
+        self.cursor.execute(
+            "SELECT is_rented FROM cars WHERE id=%s",
             (car_id,)
         )
-        if self.cursor.fetchone():  # If exists
-            raise Exception("Car already booked")  # Error
+        car_status = self.cursor.fetchone()
+
+        if car_status and car_status[0] == 1:
+            raise Exception("Car is already rented")
 
         if days < car[6] or days > car[7]:  # Validate days
             raise Exception("Invalid rental duration")  # Error
@@ -176,14 +178,28 @@ class RentalService:  # Handles all DB operations
         self.conn.commit()  # Save
         print(GREEN + "Booking submitted" + RESET)  # Success
 
-    def view_bookings(self):  # View bookings
-        self.cursor.execute("SELECT * FROM bookings")  # Fetch bookings
-        for b in self.cursor.fetchall():  # Loop bookings
-            print(b)  # Print each booking
+    def view_bookings(self):  # View all bookings with clear labels
+        self.cursor.execute("SELECT * FROM bookings")  # Fetch all bookings
+        bookings = self.cursor.fetchall()  # Store results
+
+        if not bookings:  # If no bookings exist
+            print(YELLOW + "No bookings found" + RESET)  # Show warning
+            return  # Exit function
+
+        print(CYAN + "\n===== BOOKING LIST =====" + RESET)  # Header
+
+        for (booking_id, username, car_id, days, status) in bookings:  # Loop through each booking
+            print("\n----------------------------")  # Separator
+            print(f"Booking ID : {booking_id}")  # Show booking ID
+            print(f"Username   : {username}")  # Show user
+            print(f"Car ID     : {car_id}")  # Show car
+            print(f"Days       : {days}")  # Show duration
+            print(f"Status     : {status}")  # Show booking status
+            print("----------------------------")  # End separator
 
     def approve_booking(self, booking_id):  # Approve booking
-        self.cursor.execute(  # Get car ID
-            "SELECT car_id FROM bookings WHERE id=%s",
+        self.cursor.execute(
+            "SELECT car_id FROM bookings WHERE booking_id=%s",
             (booking_id,)
         )
         result = self.cursor.fetchone()  # Fetch result
@@ -198,10 +214,10 @@ class RentalService:  # Handles all DB operations
             (car_id,)
         )
         if self.cursor.fetchone():  # If exists
-            raise Exception("Already approved booking exists")  # Error
+            raise Exception("Already approved booking for this Vehicle exists")  # Error
 
         self.cursor.execute(  # Approve booking
-            "UPDATE bookings SET status='approved' WHERE id=%s",
+            "UPDATE bookings SET status='approved' WHERE booking_id=%s",
             (booking_id,)
         )
 
@@ -215,7 +231,7 @@ class RentalService:  # Handles all DB operations
 
     def reject_booking(self, booking_id):  # Reject booking
         self.cursor.execute(  # Update status
-            "UPDATE bookings SET status='rejected' WHERE id=%s",
+            "UPDATE bookings SET status='rejected' WHERE booking_id=%s",
             (booking_id,)
         )
         self.conn.commit()  # Save
