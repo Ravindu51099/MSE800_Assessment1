@@ -107,12 +107,14 @@ class RentalService:  # Handles all DB operations
         self.conn.commit()  # Save changes
         print(GREEN + "Car updated successfully" + RESET)  # Success message
 
-    def delete_car(self, car_id):  # Delete car
-        self.cursor.execute(  # SQL delete query
-            "DELETE FROM cars WHERE id=%s", (car_id,)
-        )
-        self.conn.commit()  # Save changes
-        print(YELLOW + "Car deleted" + RESET)  # Warning message
+    def delete_car(self, car_id):
+            self.cursor.execute("DELETE FROM cars WHERE id=%s", (car_id,))
+            self.conn.commit()
+
+            if self.cursor.rowcount > 0:
+                print(GREEN + "Car deleted successfully" + RESET)
+            else:
+                print(RED + "Car does not exist" + RESET)
 
     def list_cars(self):  # Show all cars
         self.cursor.execute("SELECT * FROM cars")  # Fetch all cars
@@ -289,7 +291,13 @@ class CarRentalApp:  # Main app class
                     self.service.list_cars()
 
                 elif choice == "2":
-                    car_type = input("Type: ")  # Input type
+                    while True:
+                        car_type = input(CYAN + "Enter car type (economy / luxury / suv): " + RESET).lower().strip()
+
+                        if car_type in ["economy", "luxury", "suv"]:
+                            break
+                        else:
+                            print(RED + "Invalid type! Please enter: economy, luxury, or suv" + RESET)
 
                     car = CarFactory.create_car(
                         car_type,
