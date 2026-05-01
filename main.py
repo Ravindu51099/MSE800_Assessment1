@@ -145,6 +145,35 @@ class RentalService:  # Handles all DB operations
 
         print(GREEN + "Car deleted successfully" + RESET)
 
+    def get_user_bookings(self, username):  # Fetch bookings for a specific user
+        self.cursor.execute(  # Query bookings for this user
+            "SELECT * FROM bookings WHERE username=%s",
+            (username,)
+        )
+        bookings = self.cursor.fetchall()  # Get results
+
+        if not bookings:  # If no bookings
+            print(YELLOW + "No bookings found for this user" + RESET)  # Warning
+            return  # Exit
+
+        print(CYAN + "\n===== YOUR BOOKINGS =====" + RESET)  # Header
+
+        for (booking_id, username, car_id, days, status) in bookings:  # Loop bookings
+            print("\n----------------------------")  # Separator
+            print(f"Booking ID : {booking_id}")  # ID
+            print(f"Car ID     : {car_id}")  # Car
+            print(f"Days       : {days}")  # Duration
+            print(f"Status     : {status}")  # Status (pending/approved/rejected)
+
+            if status == "approved":  # Extra clarity for user
+                print(GREEN + "READY FOR PICKUP" + RESET)
+            elif status == "pending":
+                print(YELLOW + "WAITING FOR APPROVAL" + RESET)
+            elif status == "rejected":
+                print(RED + "NOT APPROVED" + RESET)
+
+            print("----------------------------")  # End separator
+
     def list_cars(self):  # Show all cars
         self.cursor.execute("SELECT * FROM cars")  # Fetch all cars
         cars = self.cursor.fetchall()  # Get results
@@ -314,8 +343,19 @@ class CarRentalApp:  # Main app class
 
     def admin_menu(self):  # Admin menu
         while self.user and self.user.role == "admin":
-            print(CYAN + "\n--- ADMIN MENU ---" + RESET)  # Menu header
-            print("1.View 2.Add 3.Update 4.Delete 5.Bookings 6.Approve 7.Reject 8.Logout")
+            print(CYAN + "\n====================================")
+            print("            ADMIN MENU")
+            print("====================================" + RESET)
+
+            print("1️⃣  View Cars")
+            print("2️⃣  Add Car")
+            print("3️⃣  Update Car")
+            print("4️⃣  Delete Car")
+            print("5️⃣  View Bookings")
+            print("6️⃣  Approve Booking")
+            print("7️⃣  Reject Booking")
+            print("8️⃣  Logout")
+            print("====================================")
 
             choice = input()  # User input
 
@@ -370,8 +410,15 @@ class CarRentalApp:  # Main app class
 
     def customer_menu(self):  # Customer menu
         while self.user and self.user.role == "customer":
-            print(CYAN + "\n--- CUSTOMER MENU ---" + RESET)  # Menu header
-            print("1.View Cars 2.Book 3.Logout")
+            print(CYAN + "\n====================================")
+            print("          CUSTOMER MENU")
+            print("====================================" + RESET)
+
+            print("1️⃣  View Cars")
+            print("2️⃣  Book Car")
+            print("3️⃣  My Bookings")
+            print("4️⃣  Logout")
+            print("====================================")
 
             choice = input()
 
@@ -387,6 +434,9 @@ class CarRentalApp:  # Main app class
                     )
 
                 elif choice == "3":
+                    self.service.get_user_bookings(self.user.username)
+
+                elif choice == "4":
                     self.user = None
                     print(GREEN + "Logged out" + RESET)
 
@@ -396,7 +446,12 @@ class CarRentalApp:  # Main app class
     def run(self):  # Main loop
         while True:
             if not self.user:
-                print(CYAN + "\n1.Register 2.Login" + RESET)  # Menu
+                print(CYAN + "\n====================================")
+                print("        🚗 CAR RENTAL SYSTEM")
+                print("====================================")
+                print("1️⃣  Register New Account")
+                print("2️⃣  Login to System")
+                print("====================================" + RESET)
                 choice = input()
 
                 if choice == "1":
