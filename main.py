@@ -91,30 +91,59 @@ class RentalService:  # Handles all DB operations
         self.conn.commit()  # Save changes
         print(GREEN + "User registered successfully" + RESET)  # Success message
 
-    def add_car(self, car):  # Add car to database
-        self.cursor.execute(  # Insert car into DB
-            "INSERT INTO cars VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-            (car._car_id, car._brand, car._model, car._year, car._mileage,
-             car._price, car._min_days, car._max_days, car._is_rented)
-        )
-        self.conn.commit()  # Save changes
-        print(GREEN + "Car added successfully" + RESET)  # Success message
+    def add_car(self, car):  # Add a new car to DB
+        try:  # Start error handling block
+            self.cursor.execute(
+                "INSERT INTO cars VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                (car._car_id, car._brand, car._model, car._year, car._mileage,
+                car._price, car._min_days, car._max_days, car._is_rented)
+            )
+            self.conn.commit()  # Save changes
+            print(GREEN + "Car added successfully" + RESET)
+
+        except mysql.connector.IntegrityError:  # Catch duplicate primary key error
+            print(RED + "Error: Car ID already exists. Please use a unique ID." + RESET)
+
+        except Exception as e:  # Catch any other unexpected errors
+            print(RED + "Error adding car:" + str(e) + RESET)
 
     def update_car(self, car_id, price):  # Update car price
-        self.cursor.execute(  # SQL update query
-            "UPDATE cars SET price=%s WHERE id=%s", (price, car_id)
+        self.cursor.execute(  # Run update query
+            "UPDATE cars SET price=%s WHERE id=%s",
+            (price, car_id)
         )
         self.conn.commit()  # Save changes
-        print(GREEN + "Car updated successfully" + RESET)  # Success message
+
+        if self.cursor.rowcount > 0:  # Check if any row was updated
+            print(GREEN + "Car updated successfully" + RESET)
+        else:
+            print(RED + "Car not found" + RESET)
 
     def delete_car(self, car_id):
-            self.cursor.execute("DELETE FROM cars WHERE id=%s", (car_id,))
-            self.conn.commit()
+    # STEP 1: Check if car exists
+        self.cursor.execute("SELECT * FROM cars WHERE id=%s", (car_id,))
+        car = self.cursor.fetchone()
 
-            if self.cursor.rowcount > 0:
-                print(GREEN + "Car deleted successfully" + RESET)
-            else:
-                print(RED + "Car does not exist" + RESET)
+        if not car:
+            print(RED + "Car does not exist" + RESET)
+            return  # STOP here
+
+        # STEP 2: Check only active bookings
+        self.cursor.execute(
+            "SELECT * FROM bookings WHERE car_id=%s AND status IN ('pending','approved')",
+            (car_id,)
+        )
+        active_bookings = self.cursor.fetchall()  # clear results
+
+        if active_bookings:
+            print(RED + "Cannot delete car. It has active bookings." + RESET)
+            return  # STOP here
+
+        # STEP 3: Delete car
+        self.cursor.execute("DELETE FROM cars WHERE id=%s", (car_id,))
+        self.conn.commit()
+
+        print(GREEN + "Car deleted successfully" + RESET)
 
     def list_cars(self):  # Show all cars
         self.cursor.execute("SELECT * FROM cars")  # Fetch all cars
@@ -232,12 +261,16 @@ class RentalService:  # Handles all DB operations
         print(GREEN + "Booking approved" + RESET)  # Success
 
     def reject_booking(self, booking_id):  # Reject booking
-        self.cursor.execute(  # Update status
+        self.cursor.execute(  # Try to update booking status
             "UPDATE bookings SET status='rejected' WHERE booking_id=%s",
             (booking_id,)
         )
-        self.conn.commit()  # Save
-        print(YELLOW + "Booking rejected" + RESET)  # Warning
+        self.conn.commit()  # Save changes
+
+        if self.cursor.rowcount > 0:  # Check if any row was actually updated
+            print(YELLOW + "Booking rejected" + RESET)  # Success message
+        else:
+            print(RED + "Booking not found" + RESET)  # Error if no booking exists
 
     def return_car(self, car_id):  # Return car
         self.cursor.execute(  # Update car status
