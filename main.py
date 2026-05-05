@@ -347,14 +347,14 @@ class CarRentalApp:  # Main app class
             print("            ADMIN MENU")
             print("====================================" + RESET)
 
-            print("1️⃣  View Cars")
-            print("2️⃣  Add Car")
-            print("3️⃣  Update Car")
-            print("4️⃣  Delete Car")
-            print("5️⃣  View Bookings")
-            print("6️⃣  Approve Booking")
-            print("7️⃣  Reject Booking")
-            print("8️⃣  Logout")
+            print("1️.  View Cars")
+            print("2️.  Add Car")
+            print("3️.  Update Car")
+            print("4️.  Delete Car")
+            print("5️.  View Bookings")
+            print("6️.  Approve Booking")
+            print("7️.  Reject Booking")
+            print("8️.  Logout")
             print("====================================")
 
             choice = input()  # User input
@@ -414,10 +414,10 @@ class CarRentalApp:  # Main app class
             print("          CUSTOMER MENU")
             print("====================================" + RESET)
 
-            print("1️⃣  View Cars")
-            print("2️⃣  Book Car")
-            print("3️⃣  My Bookings")
-            print("4️⃣  Logout")
+            print("1️.  View Cars")
+            print("2️.  Book Car")
+            print("3️.  My Bookings")
+            print("4️.  Logout")
             print("====================================")
 
             choice = input()
@@ -449,8 +449,8 @@ class CarRentalApp:  # Main app class
                 print(CYAN + "\n====================================")
                 print("        🚗 CAR RENTAL SYSTEM")
                 print("====================================")
-                print("1️⃣  Register New Account")
-                print("2️⃣  Login to System")
+                print("1️.  Register New Account")
+                print("2️.  Login to System")
                 print("====================================" + RESET)
                 choice = input()
 
